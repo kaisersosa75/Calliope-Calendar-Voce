@@ -42,7 +42,7 @@ async function processText(req, text) {
     console.log('NOTIFICA (conflitto):', msg);
   }
 
-  return { status: 'conflict', alternatives, message: msg, title, durationMinutes };
+  return { status: 'conflict', alternatives, message: msg, title, durationMinutes, requestedISO: startISO };
 }
 
 // Testo
@@ -80,14 +80,16 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
 // Crea un evento a un orario già preciso (usato dai pulsanti delle alternative)
 router.post('/book', requireAuth, async (req, res) => {
   try {
-    const { title, startISO, durationMinutes } = req.body;
+    const { title, startISO, durationMinutes, force } = req.body;
     const endISO = new Date(
       new Date(startISO).getTime() + (durationMinutes || 60) * 60000
     ).toISOString();
-    // Verifica che sia ancora libero (potrebbe essersi occupato nel frattempo)
-    const free = await isSlotFree(req.refreshToken, startISO, endISO);
-    if (!free) {
-      return res.json({ status: 'conflict', message: 'Anche questo orario è appena stato occupato.' });
+    // Se non forzato, verifica che sia ancora libero
+    if (!force) {
+      const free = await isSlotFree(req.refreshToken, startISO, endISO);
+      if (!free) {
+        return res.json({ status: 'conflict', message: 'Anche questo orario è appena stato occupato.' });
+      }
     }
     const event = await createEvent(req.refreshToken, { title, startISO, endISO });
     res.json({ status: 'created', title, startISO, eventId: event.id });
