@@ -34,9 +34,13 @@ async function processText(req, text) {
     `è occupato. Alternative: ${altText || 'nessuna trovata'}.`;
 
   const user = await prisma.user.findUnique({ where: { id: req.userId } });
-  // Notifica non bloccante: se l'invio fallisce, lo registriamo ma non blocchiamo la risposta
-  notifyUser({ ...user, notifyChannel: 'email' }, msg)
-    .catch((e) => console.error('Notifica fallita (ignorata):', e.message));
+  // Online (Render free) l'SMTP è bloccato: non inviamo email, mostriamo il conflitto a schermo.
+  if (process.env.NODE_ENV !== 'production') {
+    notifyUser({ ...user, notifyChannel: 'email' }, msg)
+      .catch((e) => console.error('Notifica fallita (ignorata):', e.message));
+  } else {
+    console.log('NOTIFICA (conflitto):', msg);
+  }
 
   return { status: 'conflict', alternatives, message: msg };
 }
