@@ -125,12 +125,20 @@
     .card .when { color: var(--muted); font-size: .92rem; }
     .card .msg { font-size: .92rem; line-height: 1.55; color: var(--ink); }
     .alts { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-    .alt {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--bg); border: 1px solid var(--line);
-      border-radius: 10px; padding: 10px 14px; font-size: .9rem;
+    .alt-btn {
+      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 10px; padding: 12px 14px; font-size: .92rem; font-family: inherit;
+      color: var(--ink); cursor: pointer; transition: all .15s ease;
     }
-    .alt::before { content: '→'; color: var(--accent); font-weight: 600; }
+    .alt-btn:hover { border-color: var(--green); background: var(--green-soft); transform: translateY(-1px); }
+    .alt-arrow { color: var(--green); font-weight: 700; }
+    .btn-cancel-all {
+      margin-top: 14px; width: 100%; background: none; border: 1px solid var(--line);
+      color: var(--muted); border-radius: 10px; padding: 11px; font-size: .9rem;
+      font-family: inherit; cursor: pointer; transition: all .15s ease;
+    }
+    .btn-cancel-all:hover { border-color: var(--accent); color: var(--accent); }
 
     /* --- Text fallback --- */
     .text-toggle {
@@ -274,12 +282,39 @@
         result.innerHTML = `<div class="card ok"><span class="badge">Aggiunto</span>
           <h3>${title}</h3><div class="when">${fmt(data.startISO)}</div></div>`;
       } else if (data.status === 'conflict') {
-        const alts = (data.alternatives || []).map(a => `<div class="alt">${fmt(a.startISO)}</div>`).join('');
+        const cleanTitle = (data.title || 'Appuntamento').replace(/ \(aggiunto da CALLIOPE.*$/, '');
+        const dur = data.durationMinutes || 60;
+        const alts = (data.alternatives || []).map((a, i) =>
+          `<button class="alt-btn" data-start="${a.startISO}" data-dur="${dur}" data-title="${cleanTitle.replace(/"/g,'&quot;')}">
+             <span class="alt-arrow">→</span> ${fmt(a.startISO)}
+           </button>`).join('');
         result.innerHTML = `<div class="card warn"><span class="badge">Orario occupato</span>
-          <div class="msg">${data.message || 'Quel posto è occupato.'}</div>
-          ${alts ? `<div class="alts">${alts}</div>` : ''}</div>`;
+          <div class="msg">«${cleanTitle}» non entra in quell'orario, è già occupato. Scegli un'alternativa libera:</div>
+          <div class="alts">${alts}</div>
+          <button class="btn-cancel-all" id="btnCancelAll">✕ Annulla e rifai</button>
+          </div>`;
+        // Rendi cliccabili le alternative
+        document.querySelectorAll('.alt-btn').forEach(btn => {
+          btn.addEventListener('click', () => bookSlot(btn.dataset.title, btn.dataset.start, parseInt(btn.dataset.dur)));
+        });
+        $('btnCancelAll').addEventListener('click', () => { result.innerHTML = ''; micLabel.textContent = 'Tocca per parlare'; });
       } else {
         result.innerHTML = `<div class="card"><div class="msg">${JSON.stringify(data)}</div></div>`;
+      }
+    }
+
+    // Prenota uno slot alternativo (chiamato dai pulsanti)
+    async function bookSlot(title, startISO, durationMinutes) {
+      result.innerHTML = '<div class="card"><div class="msg">Aggiungo al calendario…</div></div>';
+      try {
+        const r = await fetch('/appointment/book', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, startISO, durationMinutes })
+        });
+        showResult(await r.json());
+      } catch (err) {
+        showResult({ error: err.message });
       }
     }
 
