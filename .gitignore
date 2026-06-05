@@ -1,0 +1,17 @@
+# Segreti e variabili d'ambiente — NON caricare mai su GitHub
+.env
+.env.*
+!.env.example
+
+# Dipendenze
+node_modules/
+
+# File temporanei di upload audio
+uploads/
+
+# Log
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store

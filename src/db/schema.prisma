@@ -1,0 +1,33 @@
+// Schema del database: utenti e relativi token Google (cifrati).
+// Esegui `npm run db:push` per crearli nel Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  googleId     String       @unique
+  email        String       @unique
+  name         String?
+  // preferenze notifica
+  notifyChannel String      @default("email") // email | whatsapp | voice
+  phone        String?
+  createdAt    DateTime     @default(now())
+  token        GoogleToken?
+}
+
+model GoogleToken {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String   @unique
+  // refresh token CIFRATO (mai in chiaro) — vedi services/crypto.js
+  refreshTokenEnc String
+  updatedAt     DateTime @updatedAt
+}

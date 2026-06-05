@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#f7f5f0">
+  <title>CALLIOPE — Voice Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --ink: #1c1b18;
+      --muted: #7a756c;
+      --line: #e3dfd6;
+      --card: #fffefb;
+      --accent: #c0492b;
+      --accent-soft: #f3e4df;
+      --green: #3f7d56;
+      --green-soft: #e4efe6;
+      --amber: #b8761f;
+      --amber-soft: #f5ebda;
+      --shadow: 0 1px 2px rgba(28,27,24,.04), 0 8px 30px rgba(28,27,24,.06);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Spline Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100dvh;
+      padding: 24px 20px 40px;
+      background-image: radial-gradient(circle at 1px 1px, rgba(28,27,24,.025) 1px, transparent 0);
+      background-size: 22px 22px;
+    }
+    .wrap { width: 100%; max-width: 460px; margin: auto; }
+
+    header { text-align: center; margin-bottom: 8px; }
+    .logo {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 2rem;
+      letter-spacing: .14em;
+      margin-bottom: 2px;
+    }
+    .logo b { color: var(--accent); font-weight: 600; }
+    .tagline { color: var(--muted); font-size: .9rem; letter-spacing: .02em; }
+
+    /* --- Login --- */
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 40px 28px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      margin-top: 40px;
+    }
+    .login-card p { color: var(--muted); margin-bottom: 26px; line-height: 1.5; }
+    .gbtn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--ink); color: #fff;
+      border: none; border-radius: 999px;
+      padding: 14px 26px; font-size: 1rem; font-weight: 500;
+      font-family: inherit; cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    .gbtn:hover { transform: translateY(-1px); opacity: .92; }
+    .gbtn svg { width: 18px; height: 18px; }
+
+    /* --- App --- */
+    .app { display: none; margin-top: 18px; }
+    .greet { text-align: center; color: var(--muted); font-size: .92rem; margin-bottom: 28px; }
+    .greet b { color: var(--ink); font-weight: 500; }
+
+    .mic-zone { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+    .mic-btn {
+      width: 132px; height: 132px; border-radius: 50%;
+      border: none; cursor: pointer;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 34px rgba(192,73,43,.32);
+      transition: transform .18s ease, background .2s ease;
+      position: relative;
+    }
+    .mic-btn:hover { transform: scale(1.04); }
+    .mic-btn:active { transform: scale(.97); }
+    .mic-btn svg { width: 50px; height: 50px; }
+    .mic-btn.recording { background: var(--ink); animation: none; }
+    .mic-btn.recording::before {
+      content: ''; position: absolute; inset: -8px;
+      border-radius: 50%; border: 2px solid var(--accent);
+      animation: pulse 1.4s ease-out infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: .7; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+    .mic-label { font-size: 1.05rem; font-weight: 500; min-height: 1.4em; }
+    .mic-hint { color: var(--muted); font-size: .85rem; text-align: center; max-width: 280px; line-height: 1.5; }
+
+    /* --- Result --- */
+    .result { margin-top: 30px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow);
+      opacity: 0; transform: translateY(8px);
+      animation: rise .4s ease forwards;
+    }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+    .card .badge {
+      display: inline-block; font-size: .72rem; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 999px; margin-bottom: 12px;
+    }
+    .ok .badge { background: var(--green-soft); color: var(--green); }
+    .warn .badge { background: var(--amber-soft); color: var(--amber); }
+    .err .badge { background: var(--accent-soft); color: var(--accent); }
+    .card h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.25rem; margin-bottom: 6px; line-height: 1.3; }
+    .card .when { color: var(--muted); font-size: .92rem; }
+    .card .msg { font-size: .92rem; line-height: 1.55; color: var(--ink); }
+    .alts { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .alt {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg); border: 1px solid var(--line);
+      border-radius: 10px; padding: 10px 14px; font-size: .9rem;
+    }
+    .alt::before { content: '→'; color: var(--accent); font-weight: 600; }
+
+    /* --- Text fallback --- */
+    .text-toggle {
+      display: block; margin: 30px auto 0; background: none; border: none;
+      color: var(--muted); font-size: .88rem; font-family: inherit;
+      text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+    }
+    .text-zone { display: none; margin-top: 16px; }
+    .text-zone textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 12px;
+      padding: 14px; font-family: inherit; font-size: 1rem; resize: vertical;
+      background: var(--card); color: var(--ink);
+    }
+    .text-zone button {
+      margin-top: 10px; width: 100%; background: var(--ink); color: #fff;
+      border: none; border-radius: 12px; padding: 13px; font-size: 1rem;
+      font-weight: 500; font-family: inherit; cursor: pointer;
+    }
+
+    /* --- Anteprima trascrizione --- */
+    .preview { margin-top: 28px; display: none; }
+    .preview .card { animation: rise .35s ease forwards; }
+    .preview .badge { background: var(--amber-soft); color: var(--amber); }
+    .preview .heard { font-family: 'Fraunces', serif; font-size: 1.2rem; line-height: 1.4; margin-bottom: 4px; }
+    .preview .sub { color: var(--muted); font-size: .82rem; margin-bottom: 16px; }
+    .preview .btns { display: flex; gap: 10px; }
+    .preview .btns button { flex: 1; border: none; border-radius: 12px; padding: 13px 12px; font-size: .95rem; font-weight: 500; font-family: inherit; cursor: pointer; transition: transform .15s ease, opacity .15s ease; }
+    .preview .btns button:hover { transform: translateY(-1px); }
+    .btn-confirm { background: var(--green); color: #fff; }
+    .btn-edit { background: var(--bg); color: var(--ink); border: 1px solid var(--line) !important; }
+    .btn-redo { background: var(--bg); color: var(--ink); border: 1px solid var(--line) !important; }
+    .heard[contenteditable="true"] {
+      outline: none;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 4px;
+      background: var(--amber-soft);
+      border-radius: 6px 6px 0 0;
+      padding: 6px 8px;
+    }
+
+    .logout { display: block; margin: 36px auto 0; background: none; border: none; color: var(--muted); font-size: .82rem; font-family: inherit; cursor: pointer; }
+    .footer-note { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 20px; opacity: .7; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">CALL<b>I</b>OPE</div>
+      <div class="tagline">il tuo calendario, a voce</div>
+    </header>
+
+    <!-- LOGIN -->
+    <div class="login-card" id="loginCard">
+      <p>Aggiungi appuntamenti al tuo Google&nbsp;Calendar semplicemente parlando.</p>
+      <button class="gbtn" onclick="location.href='/auth/google'">
+        <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 11v2.8h4.6c-.2 1.2-1.4 3.5-4.6 3.5-2.8 0-5-2.3-5-5.1S9.2 7 12 7c1.6 0 2.6.7 3.2 1.2l2.2-2.1C16 4.8 14.2 4 12 4 7.6 4 4 7.6 4 12s3.6 8 8 8c4.6 0 7.7-3.2 7.7-7.8 0-.5 0-.9-.1-1.2H12z"/></svg>
+        Accedi con Google
+      </button>
+    </div>
+
+    <!-- APP -->
+    <div class="app" id="app">
+      <div class="greet">Ciao <b id="userName">—</b></div>
+
+      <div class="mic-zone">
+        <button class="mic-btn" id="micBtn" aria-label="Registra">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z"/><path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.9V21a1 1 0 1 0 2 0v-3.1A7 7 0 0 0 19 11z"/></svg>
+        </button>
+        <div class="mic-label" id="micLabel">Tocca per parlare</div>
+        <div class="mic-hint" id="micHint">Es. «Dentista giovedì alle 10», «Riunione domani alle 15 per un'ora»</div>
+      </div>
+
+      <!-- Anteprima trascrizione, con conferma o ri-registrazione -->
+      <div class="preview" id="preview">
+        <div class="card">
+          <span class="badge">Ho capito questo</span>
+          <div class="heard" id="heardText" contenteditable="false">—</div>
+          <div class="sub" id="previewSub">Controlla che sia corretto prima di aggiungerlo al calendario.</div>
+          <div class="btns">
+            <button class="btn-confirm" id="btnConfirm">✓ Conferma e invia</button>
+            <button class="btn-edit" id="btnEdit">✎ Modifica</button>
+            <button class="btn-redo" id="btnRedo">↺ Rifai</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="result" id="result"></div>
+
+      <button class="text-toggle" id="textToggle">…oppure scrivi l'appuntamento</button>
+      <div class="text-zone" id="textZone">
+        <textarea id="textInput" rows="2" placeholder="Scrivi qui il tuo appuntamento…"></textarea>
+        <button id="textSend">Aggiungi al calendario</button>
+      </div>
+
+      <button class="logout" id="logout">Esci</button>
+    </div>
+
+    <div class="footer-note">CALLIOPE Voice Calendar</div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const loginCard = $('loginCard'), app = $('app'), result = $('result');
+
+    // --- Stato login ---
+    async function checkAuth() {
+      try {
+        const r = await fetch('/auth/me', { credentials: 'include' });
+        const d = await r.json();
+        if (d.user) {
+          loginCard.style.display = 'none';
+          app.style.display = 'block';
+          $('userName').textContent = d.user.name || d.user.email || '';
+        } else {
+          loginCard.style.display = 'block';
+          app.style.display = 'none';
+        }
+      } catch {
+        loginCard.style.display = 'block';
+      }
+    }
+    checkAuth();
+
+    // --- Helper data ---
+    function fmt(iso) {
+      try {
+        return new Date(iso).toLocaleString('it-IT', {
+          weekday: 'short', day: 'numeric', month: 'short',
+          hour: '2-digit', minute: '2-digit'
+        });
+      } catch { return iso; }
+    }
+
+    function showResult(data) {
+      if (data.error) {
+        result.innerHTML = `<div class="card err"><span class="badge">Errore</span><div class="msg">${data.error}</div></div>`;
+        return;
+      }
+      if (data.status === 'created') {
+        const title = (data.title || 'Appuntamento').replace(/ \(aggiunto da CALLIOPE.*$/, '');
+        result.innerHTML = `<div class="card ok"><span class="badge">Aggiunto</span>
+          <h3>${title}</h3><div class="when">${fmt(data.startISO)}</div></div>`;
+      } else if (data.status === 'conflict') {
+        const alts = (data.alternatives || []).map(a => `<div class="alt">${fmt(a.startISO)}</div>`).join('');
+        result.innerHTML = `<div class="card warn"><span class="badge">Orario occupato</span>
+          <div class="msg">${data.message || 'Quel posto è occupato.'}</div>
+          ${alts ? `<div class="alts">${alts}</div>` : ''}</div>`;
+      } else {
+        result.innerHTML = `<div class="card"><div class="msg">${JSON.stringify(data)}</div></div>`;
+      }
+    }
+
+    // --- Voce ---
+    const micBtn = $('micBtn'), micLabel = $('micLabel');
+    let mediaRecorder, chunks = [], recMime = 'audio/webm', isRecording = false;
+
+    micBtn.addEventListener('click', async () => {
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+            : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+          recMime = mime || 'audio/webm';
+          mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+          chunks = [];
+          mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+          mediaRecorder.onstop = sendAudio;
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add('recording');
+          micLabel.textContent = 'Sto ascoltando… tocca per fermare';
+        } catch (err) {
+          micLabel.textContent = 'Microfono non accessibile';
+        }
+      } else {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        micLabel.textContent = 'Elaboro…';
+      }
+    });
+
+    async function sendAudio() {
+      const blob = new Blob(chunks, { type: recMime });
+      const ext = recMime.includes('mp4') ? 'mp4' : 'webm';
+      const form = new FormData();
+      form.append('audio', blob, 'audio.' + ext);
+      try {
+        // Fase 1: solo trascrizione (non crea ancora l'evento)
+        const r = await fetch('/appointment/transcribe', { method: 'POST', credentials: 'include', body: form });
+        const d = await r.json();
+        if (d.error) { showResult({ error: d.error }); micLabel.textContent = 'Tocca per parlare'; return; }
+        result.innerHTML = '';
+        $('heardText').textContent = d.text || '(niente di comprensibile)';
+        $('preview').style.display = 'block';
+      } catch (err) {
+        showResult({ error: err.message });
+      }
+      micLabel.textContent = 'Tocca per parlare';
+    }
+
+    // Conferma: manda il testo all'endpoint che crea l'evento
+    $('btnConfirm').addEventListener('click', async () => {
+      const text = $('heardText').textContent.trim();
+      $('heardText').setAttribute('contenteditable', 'false');
+      $('btnEdit').textContent = '✎ Modifica';
+      $('preview').style.display = 'none';
+      result.innerHTML = '<div class="card"><div class="msg">Aggiungo al calendario…</div></div>';
+      try {
+        const r = await fetch('/appointment/text', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        showResult(await r.json());
+      } catch (err) {
+        showResult({ error: err.message });
+      }
+    });
+
+    // Modifica: rende il testo editabile a mano
+    $('btnEdit').addEventListener('click', () => {
+      const heard = $('heardText');
+      const editing = heard.getAttribute('contenteditable') === 'true';
+      if (!editing) {
+        heard.setAttribute('contenteditable', 'true');
+        heard.focus();
+        // posiziona il cursore alla fine
+        const range = document.createRange();
+        range.selectNodeContents(heard);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        $('btnEdit').textContent = '✓ Fatto';
+        $('previewSub').textContent = 'Correggi il testo, poi premi "Conferma e invia".';
+      } else {
+        heard.setAttribute('contenteditable', 'false');
+        $('btnEdit').textContent = '✎ Modifica';
+        $('previewSub').textContent = 'Controlla che sia corretto prima di aggiungerlo al calendario.';
+      }
+    });
+
+    // Rifai: nasconde l'anteprima e riparte
+    $('btnRedo').addEventListener('click', () => {
+      $('preview').style.display = 'none';
+      $('heardText').setAttribute('contenteditable', 'false');
+      $('heardText').textContent = '—';
+      $('btnEdit').textContent = '✎ Modifica';
+      result.innerHTML = '';
+      micLabel.textContent = 'Tocca per parlare';
+    });
+
+    // --- Testo ---
+    $('textToggle').addEventListener('click', () => {
+      const z = $('textZone');
+      z.style.display = z.style.display === 'block' ? 'none' : 'block';
+    });
+    $('textSend').addEventListener('click', async () => {
+      const text = $('textInput').value.trim();
+      if (!text) return;
+      result.innerHTML = '<div class="card"><div class="msg">Elaboro…</div></div>';
+      try {
+        const r = await fetch('/appointment/text', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        showResult(await r.json());
+      } catch (err) {
+        showResult({ error: err.message });
+      }
+    });
+
+    // --- Logout ---
+    $('logout').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      checkAuth();
+      result.innerHTML = '';
+    });
+  </script>
+</body>
+</html>
