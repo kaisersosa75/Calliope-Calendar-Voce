@@ -34,7 +34,9 @@ async function processText(req, text) {
     `è occupato. Alternative: ${altText || 'nessuna trovata'}.`;
 
   const user = await prisma.user.findUnique({ where: { id: req.userId } });
-  await notifyUser({ ...user, notifyChannel: 'email' }, msg);
+  // Notifica non bloccante: se l'invio fallisce, lo registriamo ma non blocchiamo la risposta
+  notifyUser({ ...user, notifyChannel: 'email' }, msg)
+    .catch((e) => console.error('Notifica fallita (ignorata):', e.message));
 
   return { status: 'conflict', alternatives, message: msg };
 }
