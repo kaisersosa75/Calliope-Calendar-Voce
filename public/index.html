@@ -133,8 +133,14 @@
     }
     .alt-btn:hover { border-color: var(--green); background: var(--green-soft); transform: translateY(-1px); }
     .alt-arrow { color: var(--green); font-weight: 700; }
+    .btn-force {
+      margin-top: 14px; width: 100%; background: var(--green); color: #fff;
+      border: none; border-radius: 10px; padding: 12px; font-size: .92rem; font-weight: 500;
+      font-family: inherit; cursor: pointer; transition: all .15s ease;
+    }
+    .btn-force:hover { transform: translateY(-1px); opacity: .92; }
     .btn-cancel-all {
-      margin-top: 14px; width: 100%; background: none; border: 1px solid var(--line);
+      margin-top: 10px; width: 100%; background: none; border: 1px solid var(--line);
       color: var(--muted); border-radius: 10px; padding: 11px; font-size: .9rem;
       font-family: inherit; cursor: pointer; transition: all .15s ease;
     }
@@ -291,26 +297,31 @@
         result.innerHTML = `<div class="card warn"><span class="badge">Orario occupato</span>
           <div class="msg">«${cleanTitle}» non entra in quell'orario, è già occupato. Scegli un'alternativa libera:</div>
           <div class="alts">${alts}</div>
+          <button class="btn-force" id="btnForce">＋ Aggiungi comunque all'orario richiesto</button>
           <button class="btn-cancel-all" id="btnCancelAll">✕ Annulla e rifai</button>
           </div>`;
         // Rendi cliccabili le alternative
         document.querySelectorAll('.alt-btn').forEach(btn => {
           btn.addEventListener('click', () => bookSlot(btn.dataset.title, btn.dataset.start, parseInt(btn.dataset.dur)));
         });
+        // Aggiungi comunque (forza nell'orario originale)
+        if (data.requestedISO) {
+          $('btnForce').addEventListener('click', () => bookSlot(cleanTitle, data.requestedISO, dur, true));
+        }
         $('btnCancelAll').addEventListener('click', () => { result.innerHTML = ''; micLabel.textContent = 'Tocca per parlare'; });
       } else {
         result.innerHTML = `<div class="card"><div class="msg">${JSON.stringify(data)}</div></div>`;
       }
     }
 
-    // Prenota uno slot alternativo (chiamato dai pulsanti)
-    async function bookSlot(title, startISO, durationMinutes) {
+    // Prenota uno slot (chiamato dai pulsanti). force=true ignora il conflitto.
+    async function bookSlot(title, startISO, durationMinutes, force = false) {
       result.innerHTML = '<div class="card"><div class="msg">Aggiungo al calendario…</div></div>';
       try {
         const r = await fetch('/appointment/book', {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, startISO, durationMinutes })
+          body: JSON.stringify({ title, startISO, durationMinutes, force })
         });
         showResult(await r.json());
       } catch (err) {
