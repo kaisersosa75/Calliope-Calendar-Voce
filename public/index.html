@@ -41,6 +41,14 @@
     .wrap { width: 100%; max-width: 460px; margin: auto; }
 
     header { text-align: center; margin-bottom: 8px; }
+    .brand-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .brand-text { text-align: left; }
+    .muse {
+      display: block;
+      width: 48px;
+      height: auto;
+      flex-shrink: 0;
+    }
     .logo {
       font-family: 'Fraunces', serif;
       font-weight: 500;
@@ -201,8 +209,13 @@
 <body>
   <div class="wrap">
     <header>
-      <div class="logo">CALL<b>I</b>OPE</div>
-      <div class="tagline">il tuo calendario, a voce</div>
+      <div class="brand-row">
+      <img class="muse" src="calliope.png" alt="Musa Calliope">
+      <div class="brand-text">
+        <div class="logo">CALL<b>I</b>OPE</div>
+        <div class="tagline">il tuo calendario, a voce</div>
+      </div>
+      </div>
     </header>
 
     <!-- LOGIN -->
