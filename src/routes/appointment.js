@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 const upload = multer({ dest: 'uploads/' });
 
 /** Logica condivisa: dal testo all'evento (o conflitto + notifica). */
-async function processText(req, text) {
+async function processText(req, text, location) {
   const { title, startISO, durationMinutes } = await parseAppointment(text);
   const endISO = new Date(
     new Date(startISO).getTime() + durationMinutes * 60000
@@ -21,7 +21,7 @@ async function processText(req, text) {
   const free = await isSlotFree(req.refreshToken, startISO, endISO);
 
   if (free) {
-    const event = await createEvent(req.refreshToken, { title, startISO, endISO });
+    const event = await createEvent(req.refreshToken, { title, startISO, endISO, location });
     return { status: 'created', title, startISO, eventId: event.id };
   }
 
@@ -42,13 +42,13 @@ async function processText(req, text) {
     console.log('NOTIFICA (conflitto):', msg);
   }
 
-  return { status: 'conflict', alternatives, message: msg, title, durationMinutes, requestedISO: startISO };
+  return { status: 'conflict', alternatives, message: msg, title, durationMinutes, requestedISO: startISO, location };
 }
 
 // Testo
 router.post('/text', requireAuth, async (req, res) => {
   try {
-    res.json(await processText(req, req.body.text));
+    res.json(await processText(req, req.body.text, req.body.location));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -70,7 +70,7 @@ router.post('/voice', requireAuth, upload.single('audio'), async (req, res) => {
 router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res) => {
   try {
     const text = await transcribe(req.file.path, req.file.originalname);
-    res.json({ text });
+    res.json(await processText(req, text, req.body.location));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -80,7 +80,7 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
 // Crea un evento a un orario già preciso (usato dai pulsanti delle alternative)
 router.post('/book', requireAuth, async (req, res) => {
   try {
-    const { title, startISO, durationMinutes, force } = req.body;
+    const { title, startISO, durationMinutes, force, location } = req.body;
     const endISO = new Date(
       new Date(startISO).getTime() + (durationMinutes || 60) * 60000
     ).toISOString();
@@ -91,7 +91,7 @@ router.post('/book', requireAuth, async (req, res) => {
         return res.json({ status: 'conflict', message: 'Anche questo orario è appena stato occupato.' });
       }
     }
-    const event = await createEvent(req.refreshToken, { title, startISO, endISO });
+    const event = await createEvent(req.refreshToken, { title, startISO, endISO, location });
     res.json({ status: 'created', title, startISO, eventId: event.id });
   } catch (err) {
     console.error(err);

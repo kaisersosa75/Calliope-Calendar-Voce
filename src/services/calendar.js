@@ -21,16 +21,18 @@ export async function isSlotFree(refreshToken, startISO, endISO) {
   return data.calendars.primary.busy.length === 0;
 }
 
-export async function createEvent(refreshToken, { title, startISO, endISO }) {
+export async function createEvent(refreshToken, { title, startISO, endISO, location }) {
   const calendar = calendarForUser(refreshToken);
-  const { data } = await calendar.events.insert({
-    calendarId: 'primary',
-    requestBody: {
-       summary: `${title} (aggiunto da CALLIOPE Voice Calendar)`,
-      start: { dateTime: startISO, timeZone: TIMEZONE },
-      end: { dateTime: endISO, timeZone: TIMEZONE },
-    },
-  });
+  const requestBody = {
+    summary: `${title} (aggiunto da CALLIOPE Voice Calendar)`,
+    start: { dateTime: startISO, timeZone: TIMEZONE },
+    end: { dateTime: endISO, timeZone: TIMEZONE },
+  };
+  // Campo "luogo o videochiamata" su Google Calendar
+  if (location && location.trim()) {
+    requestBody.location = location.trim();
+  }
+  const { data } = await calendar.events.insert({ calendarId: 'primary', requestBody });
   return data;
 }
 
