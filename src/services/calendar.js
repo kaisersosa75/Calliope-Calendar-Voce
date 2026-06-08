@@ -18,7 +18,15 @@ export async function isSlotFree(refreshToken, startISO, endISO) {
       items: [{ id: 'primary' }],
     },
   });
-  return data.calendars.primary.busy.length === 0;
+
+  // LOG temporaneo: vediamo cosa risponde davvero Google
+  console.log('FREEBUSY', startISO, '->', endISO, JSON.stringify(data.calendars));
+
+  // Robusto: prende il primo calendario nella risposta, qualunque sia la sua chiave
+  const calendars = data.calendars || {};
+  const firstKey = Object.keys(calendars)[0];
+  const busy = firstKey ? (calendars[firstKey].busy || []) : [];
+  return busy.length === 0;
 }
 
 export async function createEvent(refreshToken, { title, startISO, endISO, location }) {
