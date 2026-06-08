@@ -58,19 +58,19 @@ router.post('/text', requireAuth, async (req, res) => {
 // Audio
 router.post('/voice', requireAuth, upload.single('audio'), async (req, res) => {
   try {
-    const text = await transcribe(req.file.path);
-    res.json(await processText(req, text));
+    const text = await transcribe(req.file.path, req.file.originalname);
+    res.json(await processText(req, text, req.body.location));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Solo trascrizione: restituisce il testo senza creare l'evento
+// Solo trascrizione: restituisce SOLO il testo, senza creare nulla
 router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res) => {
   try {
     const text = await transcribe(req.file.path, req.file.originalname);
-    res.json(await processText(req, text, req.body.location));
+    res.json({ text });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
